@@ -22,6 +22,7 @@
 
   <!-- Main Stylesheet -->
   <link href="{{ url_for('static',filename='assets/css/style.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static',filename='assets/css/auth.css') }}" rel="stylesheet">
   
   <!--Favicon-->
   <link rel="shortcut icon" href="{{ url_for('static',filename='assets/images/favicon.ico') }}" type="image/x-icon">
@@ -31,62 +32,6 @@
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" integrity="sha384-gfdkjb5BdAXd+lj+gudLWI+BXq4IuLW5IT+brZEZsLFm++aCMlF1V92rMkPaX4PP" crossorigin="anonymous">
 
-	<style>
-		body,
-		html {
-			margin: 0;
-			padding: 0;
-			height: 100%;
-		}
-		.user_card {
-			width: 400px;
-			margin-top: auto;
-			margin-bottom: auto;
-			background: #D4E4EE;
-			position: relative;
-			display: flex;
-			justify-content: center;
-			flex-direction: column;
-			padding: 30px;
-			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-			-webkit-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-			-moz-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-			border-radius: 5px;
-
-		}
-
-		.form_container {
-			margin-top: 20px;
-		}
-
-		#form-title{
-			color: rgb(68, 52, 52);
-		}
-		.login_btn {
-			width: 100%;
-			background: #5a6163 !important;
-			color: white !important;
-		}
-		.login_btn:focus {
-			box-shadow: none !important;
-			outline: 0px !important;
-		}
-		.login_container {
-			padding: 0 2rem;
-		}
-		.input-group-text {
-			background: #f7ba5b !important;
-			color: white !important;
-			border: 0 !important;
-			border-radius: 0.25rem 0 0 0.25rem !important;
-		}
-		.input_user,
-		.input_pass:focus {
-			box-shadow: none !important;
-			outline: 0px !important;
-		}
-
-	</style>
 
 
 </head>
@@ -140,39 +85,50 @@
   <img class="img-fluid hero-bg-5 left-right-animation" src="{{ url_for('static', filename='assets/images/background-shape/blue-half-cycle.png') }}" alt="">
   <img class="img-fluid hero-bg-6 up-down-animation" src="{{ url_for('static', filename='assets/images/background-shape/seo-ball-1.png') }}" alt="">
 
-<div class="container h-100">
-  <div class="d-flex justify-content-center h-100">
-    <div class="user_card">
-      <div class="d-flex justify-content-center">
-        <h3 id="form-title">Login</h3>
-      </div>
-      <div class="d-flex justify-content-center form_container">
-        <form method="POST" id='login' >
-        <label for="chk" aria-hidden="true">Email: &emsp;&nbsp;</label>
-        <input type="email" name="name" placeholder="email" required="">
-        <br>
-        <label for="chk" aria-hidden="true">Password:</label>
-        <input type="Password" name="pass" placeholder="Password" required="">
-        <br>
-        <button class="login_btn" name="id" value="login">Login</button>
-        <br>
-        <button class="login_btn" name="id" value="forgot">Forgot password?</button>
-        <div style="text-align: center;">{% if us %}
-             {{us}}
-        {% endif%}</div>
-      </form>
-     
-      </div>
-    
-      <div class="mt-4">
-        <div class="d-flex justify-content-center links">
-          Don't have an account? <a href="{{url_for('signup')}}" class="ml-2">Sign Up</a>
-        </div>
-         <div>Note: If you forgot password enter email for reset link</div>
-    
-      </div>
-      
+<div class="auth-wrap">
+  <div class="auth-card">
+
+    <div class="auth-head">
+      <img class="auth-logo" src="{{ url_for('static', filename='assets/images/logo.png') }}" alt="Simplify">
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-sub">Log in to scan a photo and get guidance on what it might be.</p>
     </div>
+
+    {% if us %}
+    <div class="auth-alert {{ 'ok' if ok else 'err' }}">{{ us }}</div>
+    {% endif %}
+
+    <form method="POST" id="loginForm">
+      <div class="field">
+        <label for="email">Email address</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 6L2 7"></path></svg>
+          <input type="email" id="email" name="name" placeholder="you@example.com" required autocomplete="email" autofocus>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <input type="password" id="password" name="pass" placeholder="Your password" required autocomplete="current-password">
+          <button type="button" class="toggle-pass" data-target="password">Show</button>
+        </div>
+      </div>
+
+      <div class="auth-row">
+        <button type="submit" class="btn-link" name="id" value="forgot">Forgot password?</button>
+      </div>
+
+      <button type="submit" class="btn-auth" name="id" value="login" id="submitBtn">Log in</button>
+    </form>
+
+    <p class="auth-note">Forgot your password? Enter your email above and hit “Forgot password?” — we'll send a reset link.</p>
+
+    <div class="auth-foot">
+      Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a>
+    </div>
+
   </div>
 </div>
 
@@ -188,6 +144,7 @@
 <script src="{{ url_for('static',filename='assets/js/script.js') }}"></script>
 
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<script src="{{ url_for('static',filename='assets/js/auth.js') }}"></script>
 
 </body>
 </html>

@@ -158,7 +158,8 @@ def login():
     if session.get("user_id") and request.method == 'GET':
         return redirect(url_for('dashboard'))
 
-    error_msg = None
+    message = None
+    ok = False
     if request.method == 'POST':
         action = request.form.get('id')
         email = request.form.get('name', '').strip()
@@ -166,23 +167,25 @@ def login():
 
         if action == 'login':
             if not email or not password:
-                error_msg = "Email and password are required"
+                message = "Email and password are required"
             else:
                 result = firebase_login(email, password)
                 if result['success']:
                     start_session(result['uid'], result['email'])
                     return redirect(url_for('dashboard'))
-                error_msg = friendly_error(result['error'])
+                message = friendly_error(result['error'])
 
         elif action == 'forgot':
             if not email:
-                error_msg = "Please enter your email"
-            elif firebase_password_reset(email):
-                error_msg = "Password reset link sent — check your inbox."
+                message = "Enter your email address first, then press Forgot password."
             else:
-                error_msg = "Error sending reset email"
+                # Same reply either way — a different one would reveal which
+                # addresses have accounts.
+                firebase_password_reset(email)
+                message = "If that email has an account, a reset link is on its way."
+                ok = True
 
-    return render_template('login.html', us=error_msg)
+    return render_template('login.html', us=message, ok=ok)
 
 @app.route("/about")
 def about():
