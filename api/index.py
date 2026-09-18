@@ -1,36 +1,19 @@
 import sys
 import os
-import json
+import requests
 
 # Add parent directory to path so we can import from the project root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from flask import Flask, render_template, request, redirect, url_for
-import firebase_admin
-from firebase_admin import auth, credentials
+from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
 app.secret_key = "super secret key"
 
-# Firebase config - for production, use environment variables
-firebase_config = {
-  "type": "service_account",
-  "project_id": "soumya-f5929",
-  "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID", ""),
-  "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace('\\n', '\n'),
-  "client_email": os.getenv("FIREBASE_CLIENT_EMAIL", ""),
-  "client_id": os.getenv("FIREBASE_CLIENT_ID", ""),
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
-}
-
-try:
-    cred = credentials.Certificate(firebase_config)
-    firebase_admin.initialize_app(cred)
-except Exception as e:
-    # If service account not configured, app will still work for static routes
-    pass
+# Firebase Web API Key (from your Firebase Console)
+FIREBASE_API_KEY = "AIzaSyBRGnBkPyTq2gDA6bb0hZ5j1qeOcwgWDYE"
+FIREBASE_PROJECT_ID = "soumya-f5929"
+FIREBASE_AUTH_URL = "https://identitytoolkit.googleapis.com/v1/accounts"
 
 @app.route("/")
 def index():
@@ -40,46 +23,120 @@ def index():
 def dashboard():
     return render_template('dashboard.html')
 
+def firebase_signup(email, password):
+    """Create a new Firebase user via REST API"""
+    url = f"{FIREBASE_AUTH_URL}:signUp?key={FIREBASE_API_KEY}"
+    payload = {
+        "email": email,
+        "password": password,
+        "returnSecureToken": True
+    }
+    try:
+        response = requests.post(url, json=payload)
+        data = response.json()
+        if response.status_code == 200:
+            return {"success": True, "uid": data.get('localId')}
+        else:
+            error_msg = data.get('error', {}).get('message', 'Signup failed')
+            return {"success": False, "error": error_msg}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def firebase_login(email, password):
+    """Authenticate user via Firebase REST API"""
+    url = f"{FIREBASE_AUTH_URL}:signInWithPassword?key={FIREBASE_API_KEY}"
+    payload = {
+        "email": email,
+        "password": password,
+        "returnSecureToken": True
+    }
+    try:
+        response = requests.post(url, json=payload)
+        data = response.json()
+        if response.status_code == 200:
+            return {
+                "success": True,
+                "uid": data.get('localId'),
+                "email": data.get('email'),
+                "token": data.get('idToken')
+            }
+        else:
+            error_msg = data.get('error', {}).get('message', 'Invalid credentials')
+            return {"success": False, "error": error_msg}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def firebase_password_reset(email):
+    """Send password reset email"""
+    url = f"{FIREBASE_AUTH_URL}:sendOobCode?key={FIREBASE_API_KEY}"
+    payload = {
+        "email": email,
+        "requestType": "PASSWORD_RESET"
+    }
+    try:
+        response = requests.post(url, json=payload)
+        return response.status_code == 200
+    except:
+        return False
+
 @app.route("/logout", methods=['GET', 'POST'])
 def logout():
-    auth.current_user = None
-    return redirect(url_for('login'))
+    session.clear()
+    return redirect(url_for('index'))
 
 @app.route("/signup", methods=['GET', 'POST'])
 def signup():
-    unsuccessful = "User Already exists!"
+    error_msg = None
     if request.method == 'POST':
         if request.form.get('id') == 'signup':
-            email = request.form['name']
-            password = request.form['pass']
-            try:
-                user = auth.create_user(email=email, password=password)
-                return redirect(url_for('login'))
-            except Exception as e:
-                return render_template('register.html', us=unsuccessful)
-    return render_template('register.html')
+            email = request.form.get('name', '').strip()
+            password = request.form.get('pass', '').strip()
+
+            if not email or not password:
+                error_msg = "Email and password are required"
+            else:
+                result = firebase_signup(email, password)
+                if result['success']:
+                    session['user_email'] = email
+                    session['user_id'] = result['uid']
+                    return redirect(url_for('login'))
+                else:
+                    error_msg = result['error']
+
+    return render_template('register.html', us=error_msg)
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
-    unsuccessful = "invalid credentials"
+    error_msg = None
     if request.method == 'POST':
-        if request.form.get('id') == 'login':
-            email = request.form['name']
-            password = request.form['pass']
-            try:
-                # Firebase Admin SDK doesn't have built-in password verification
-                # You'll need to implement custom token verification or use REST API
-                return render_template('dashboard.html')
-            except Exception as e:
-                return render_template('login.html', us=unsuccessful)
-        if request.form.get('id') == 'forgot':
-            email = request.form['name']
-            try:
-                auth.generate_password_reset_link(email)
-            except:
-                pass
-            return redirect(url_for('login'))
-    return render_template('login.html')
+        action = request.form.get('id')
+        email = request.form.get('name', '').strip()
+        password = request.form.get('pass', '').strip()
+
+        if action == 'login':
+            if not email or not password:
+                error_msg = "Email and password are required"
+            else:
+                result = firebase_login(email, password)
+                if result['success']:
+                    session['user_email'] = result['email']
+                    session['user_id'] = result['uid']
+                    session['user_token'] = result['token']
+                    return render_template('dashboard.html')
+                else:
+                    error_msg = result['error']
+
+        elif action == 'forgot':
+            if not email:
+                error_msg = "Please enter your email"
+            else:
+                if firebase_password_reset(email):
+                    error_msg = "Password reset link sent to your email"
+                else:
+                    error_msg = "Error sending reset email"
+            return render_template('login.html', us=error_msg)
+
+    return render_template('login.html', us=error_msg)
 
 @app.route("/about")
 def about():
