@@ -14,12 +14,18 @@
   var statusTitle = document.getElementById("statusTitle");
   var statusDetail = document.getElementById("statusDetail");
   var resultBox = document.getElementById("result");
-  var webcamBtn = document.getElementById("webcamBtn");
+
+  var webcamWrap = document.getElementById("webcamWrap");
+  var webcamOverlay = document.getElementById("webcamOverlay");
   var webcamContainer = document.getElementById("webcam-container");
+  var webcamBtn = document.getElementById("webcamBtn");
+  var captureBtn = document.getElementById("captureBtn");
+  var retakeBtn = document.getElementById("retakeBtn");
 
   var modelPromise = null;
   var webcam = null;
-  var webcamRunning = false;
+  var webcamOn = false;   // camera is streaming
+  var webcamLive = false; // frame loop is running (false = frozen on a captured frame)
 
   function show(el) { if (el) el.hidden = false; }
   function hide(el) { if (el) el.hidden = true; }
@@ -105,7 +111,6 @@
     resultBox.innerHTML = html;
     show(resultBox);
 
-    // Trigger the bar animation after the element is in the DOM.
     requestAnimationFrame(function () {
       var fill = document.getElementById("confFill");
       if (fill) fill.style.width = pct + "%";
@@ -118,37 +123,38 @@
     show(resultBox);
   }
 
-  function scanImage() {
+  /* Runs one prediction against an <img> or a canvas and renders the result. */
+  function runScan(input, overlayEl) {
     hide(resultBox);
-    show(overlay);
+    show(overlayEl);
     setStatus("Loading model…", "First run downloads the model — this takes a few seconds.");
 
     var startedAt = Date.now();
 
-    loadModel()
+    return loadModel()
       .then(function (model) {
         setStatus("Scanning image…", "Analysing texture, colour and pattern.");
-        return model.predict(preview, false);
+        return model.predict(input, false);
       })
       .then(function (predictions) {
-        var elapsed = Date.now() - startedAt;
-        var wait = Math.max(0, MIN_SCAN_MS - elapsed);
+        var wait = Math.max(0, MIN_SCAN_MS - (Date.now() - startedAt));
         return new Promise(function (resolve) {
           setTimeout(function () { resolve(predictions); }, wait);
         });
       })
       .then(function (predictions) {
-        hide(overlay);
+        hide(overlayEl);
         hide(statusBox);
         renderResult(topPrediction(predictions));
       })
       .catch(function (err) {
-        hide(overlay);
+        hide(overlayEl);
         showError("Could not run the scan: " + (err && err.message ? err.message : err) +
           ". Check your connection and try again.");
       });
   }
 
+  /* ---------- upload ---------- */
   function handleFile(file) {
     if (!file) return;
     if (!/^image\//.test(file.type)) {
@@ -160,7 +166,7 @@
     reader.onload = function (e) {
       preview.onload = function () {
         preview.onload = null;
-        scanImage();
+        runScan(preview, overlay);
       };
       preview.src = e.target.result;
       show(previewWrap);
@@ -221,24 +227,24 @@
 
       hide(resultBox);
       hide(statusBox);
-      if (mode !== "webcam" && webcamRunning) stopWebcam();
+      if (mode !== "webcam" && webcamOn) stopWebcam();
     });
   });
 
-  /* ---------- webcam ---------- */
-  function webcamLoop() {
-    if (!webcamRunning) return;
+  /* ---------- webcam ----------
+   * The feed only streams frames. Prediction runs once, on the frame the
+   * user chooses to capture — otherwise the result flickers between classes
+   * on every tick and none of them mean anything.
+   */
+  function liveLoop() {
+    if (!webcamOn || !webcamLive) return;
     webcam.update();
-    webcam.model.predict(webcam.canvas)
-      .then(function (predictions) {
-        if (webcamRunning) renderResult(topPrediction(predictions));
-      })
-      .catch(function () { /* keep the loop alive between frames */ });
-    setTimeout(function () { requestAnimationFrame(webcamLoop); }, 700);
+    requestAnimationFrame(liveLoop);
   }
 
   function stopWebcam() {
-    webcamRunning = false;
+    webcamOn = false;
+    webcamLive = false;
     if (webcam) {
       webcam.stop();
       if (webcam.canvas && webcam.canvas.parentNode) {
@@ -246,11 +252,15 @@
       }
     }
     webcamBtn.textContent = "Start webcam";
+    hide(webcamWrap);
+    hide(webcamOverlay);
+    hide(captureBtn);
+    hide(retakeBtn);
     hide(statusBox);
   }
 
   webcamBtn.addEventListener("click", function () {
-    if (webcamRunning) {
+    if (webcamOn) {
       stopWebcam();
       hide(resultBox);
       return;
@@ -259,21 +269,42 @@
     setStatus("Starting camera…", "Allow camera access when your browser asks.");
 
     loadModel()
-      .then(function (model) {
-        webcam = new tmImage.Webcam(280, 280, true);
-        webcam.model = model;
+      .then(function () {
+        webcam = new tmImage.Webcam(300, 300, true);
         return webcam.setup().then(function () { return webcam.play(); });
       })
       .then(function () {
         webcamContainer.appendChild(webcam.canvas);
-        webcamRunning = true;
+        webcamOn = true;
+        webcamLive = true;
         webcamBtn.textContent = "Stop webcam";
+        show(webcamWrap);
+        show(captureBtn);
+        hide(retakeBtn);
         hide(statusBox);
-        webcamLoop();
+        liveLoop();
       })
       .catch(function (err) {
         showError("Could not start the camera: " + (err && err.message ? err.message : err) +
           ". Check that you granted camera permission.");
       });
+  });
+
+  captureBtn.addEventListener("click", function () {
+    if (!webcamOn) return;
+    webcamLive = false; // freezes the canvas on the current frame
+    hide(captureBtn);
+    runScan(webcam.canvas, webcamOverlay).then(function () {
+      show(retakeBtn);
+    });
+  });
+
+  retakeBtn.addEventListener("click", function () {
+    if (!webcamOn) return;
+    hide(resultBox);
+    hide(retakeBtn);
+    show(captureBtn);
+    webcamLive = true;
+    liveLoop();
   });
 })();

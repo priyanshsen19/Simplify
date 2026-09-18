@@ -77,7 +77,12 @@
           </li>
           
         </ul>
+        {% if session.user_id %}
+        <a href="{{url_for('dashboard')}}" class="btn btn-primary ml-lg-3 primary-shadow">Predict Skin Disease</a>
+        <a href="{{url_for('logout')}}" class="btn btn-primary ml-lg-2 primary-shadow">Logout</a>
+        {% else %}
         <a href="{{url_for('login')}}" class="btn btn-primary ml-lg-3 primary-shadow">Login</a>
+        {% endif %}
       </div>
     </nav>
   </div>

@@ -221,8 +221,12 @@
         text-decoration: none;
       }
 
-      .webcam-frame{ display:flex; justify-content:center; margin-bottom: 16px; }
-      .webcam-frame canvas{ border-radius: 14px; border: 1px solid var(--sc-line); }
+      .webcam-frame{ display:flex; justify-content:center; line-height: 0; }
+      .webcam-frame canvas{ display:block; max-width: 100%; }
+      .webcam-actions{
+        display:flex; justify-content:center; gap: 10px;
+        flex-wrap: wrap; margin-top: 16px;
+      }
 
       .scan-status{
         display: flex; align-items: center; gap: 14px; margin-top: 22px;
@@ -353,7 +357,7 @@
           </li>
           
         </ul>
-        <a onclick="myFunction()" href="{{url_for('logout')}}" class="btn btn-primary ml-lg-3 primary-shadow">logout</a>
+        <a href="{{url_for('logout')}}" class="btn btn-primary ml-lg-3 primary-shadow">Logout</a>
       </div>
       
     </nav>
@@ -411,9 +415,19 @@
             </div>
 
             <div class="scan-pane" id="pane-webcam" hidden>
-              <div id="webcam-container" class="webcam-frame"></div>
-              <div style="text-align:center">
+              <div class="preview-wrap" id="webcamWrap" hidden>
+                <div class="preview-frame">
+                  <div id="webcam-container" class="webcam-frame"></div>
+                  <div class="scan-overlay" id="webcamOverlay" hidden>
+                    <div class="scan-grid"></div>
+                    <div class="scan-beam"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="webcam-actions">
                 <button id="webcamBtn" type="button" class="btn-primary-soft">Start webcam</button>
+                <button id="captureBtn" type="button" class="btn-primary-soft" hidden>Capture &amp; analyse</button>
+                <button id="retakeBtn" type="button" class="btn-ghost" hidden>Retake</button>
               </div>
             </div>
 
@@ -481,11 +495,6 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 
 gtag('config', 'OUR_GA_ID', {cookie_flags: 'SameSite=None;Secure'});
-</script>
-<script>
-  function myFunction() {
-alert("You have successfully logged out");
-} 
 </script>
 
 </body>

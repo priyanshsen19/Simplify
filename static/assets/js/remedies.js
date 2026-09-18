@@ -435,6 +435,125 @@ window.SKIN_CONDITIONS = {
     ]
   },
 
+  acnerosacea: {
+    label: "Acne & Rosacea",
+    severity: "moderate",
+    aliases: ["acneandrosacea", "acneandrosaceaphotos", "acnerosaceaphotos"],
+    summary:
+      "This class covers both acne and rosacea. They look similar but are treated differently — acne responds to benzoyl peroxide, while rosacea is usually made worse by it.",
+    immediate: [
+      "Wash with lukewarm water and a gentle, fragrance-free cleanser",
+      "Pat dry — never scrub",
+      "Cool compress for 5–10 minutes to settle redness"
+    ],
+    remedies: [
+      "If it's mostly whiteheads and blackheads, treat as acne: benzoyl peroxide 2.5% or salicylic acid once daily",
+      "If it's persistent central-face flushing with visible vessels, treat as rosacea: bland moisturiser and mineral SPF 30+, no acids",
+      "Non-comedogenic moisturiser and sunscreen either way",
+      "Keep a trigger diary if flushing is a feature — heat, alcohol and spice are common"
+    ],
+    avoid: [
+      "Picking or squeezing, which causes scarring",
+      "Harsh scrubs and alcohol-based toners",
+      "Topical steroids — they worsen both conditions over time"
+    ],
+    seeDoctor: [
+      "Deep painful lumps, or scarring starting to form",
+      "Eye grittiness or irritation alongside facial redness",
+      "No improvement after 6–8 weeks of over-the-counter treatment"
+    ]
+  },
+
+  molluscum: {
+    label: "Molluscum Contagiosum / Viral Skin Infection",
+    severity: "low",
+    aliases: ["molluscumcontagiosum", "molluscumcontagiosumandotherviralinfections", "viralinfection", "viralinfections"],
+    summary:
+      "Small, firm, dome-shaped bumps with a dimpled centre, caused by a pox virus. Contagious by contact but harmless, and usually clears on its own within 6–18 months.",
+    immediate: [
+      "Cover the bumps with clothing or a plaster to limit spread",
+      "Keep the skin moisturised — dry, itchy skin leads to scratching",
+      "Wash hands after touching the area"
+    ],
+    remedies: [
+      "Patience is the main treatment — most cases resolve without intervention",
+      "Moisturise daily to reduce itch and the urge to scratch",
+      "Separate towels and flannels; don't share baths with siblings",
+      "Cover lesions before swimming or contact sport"
+    ],
+    avoid: [
+      "Scratching, squeezing or picking — this is how it spreads to new sites",
+      "Shaving over affected skin",
+      "Sharing towels, sponges or bath water"
+    ],
+    seeDoctor: [
+      "Lesions on the eyelid or near the eye",
+      "Genital lesions, or lesions in an adult (may need STI screening)",
+      "Widespread lesions, or you are immunocompromised",
+      "Bumps that turn red, hot and painful — that suggests bacterial infection"
+    ]
+  },
+
+  vasculartumor: {
+    label: "Vascular Tumour",
+    severity: "moderate",
+    aliases: ["vasculartumors", "vasculartumour", "vasculartumours", "haemangioma", "hemangioma", "angioma", "pyogenicgranuloma", "cherryangioma"],
+    summary:
+      "A growth made of blood vessels — such as a haemangioma, cherry angioma or pyogenic granuloma. Most are benign, but they bleed readily and some need treatment.",
+    immediate: [
+      "If it is bleeding, press firmly with a clean gauze for 10 full minutes without lifting to check",
+      "Protect it from knocks and friction",
+      "Photograph it with a size reference so growth can be tracked"
+    ],
+    remedies: [
+      "There is no effective home treatment — the useful steps are protection and monitoring",
+      "Keep the area clean and covered if it sits somewhere it gets caught",
+      "Avoid clothing or jewellery that rubs it",
+      "Record any change in size or colour between appointments"
+    ],
+    avoid: [
+      "Attempting to remove, tie off, freeze or cauterise it yourself — these bleed heavily",
+      "Picking scabs off a lesion that has bled",
+      "Ignoring rapid growth"
+    ],
+    seeDoctor: [
+      "Bleeding that will not stop after 10 minutes of firm pressure — seek urgent care",
+      "Rapid growth, or a lesion near the eye, lip, nose or airway",
+      "Any vascular lesion in an infant — these need specialist assessment early",
+      "Ulceration, pain, or a change in colour"
+    ]
+  },
+
+  bullous: {
+    label: "Bullous Disease",
+    severity: "urgent",
+    aliases: ["bullousdisease", "bullousdiseasephotos", "bullouspemphigoid", "pemphigus", "pemphigoid", "blisteringdisease"],
+    summary:
+      "Large fluid-filled blisters, often from an autoimmune condition such as bullous pemphigoid or pemphigus. These need a medical diagnosis — they are not something to manage at home.",
+    immediate: [
+      "Arrange a medical appointment — this group of conditions needs prescription treatment",
+      "Leave blisters intact; the roof is a sterile dressing",
+      "Cover with a non-adherent dressing and cool compress for comfort"
+    ],
+    remedies: [
+      "There is no home cure — self-care here is about protecting skin while you get seen",
+      "Soft, loose cotton clothing to reduce friction",
+      "Bland emollient on unbroken surrounding skin",
+      "Gentle saline rinse for areas that have already burst"
+    ],
+    avoid: [
+      "Deliberately popping or de-roofing blisters",
+      "Adhesive dressings and tape directly on fragile skin",
+      "Hot baths and vigorous towel-drying"
+    ],
+    seeDoctor: [
+      "URGENT: blisters in the mouth, throat or eyes, or difficulty swallowing",
+      "URGENT: widespread blistering, fever, or feeling systemically unwell",
+      "Any new blistering rash without an obvious cause such as a burn or friction",
+      "Signs of infection: pus, spreading redness, increasing pain"
+    ]
+  },
+
   healthy: {
     label: "Healthy Skin",
     severity: "low",
@@ -472,15 +591,18 @@ window.lookupCondition = function (rawLabel) {
 
   if (db[key]) return db[key];
 
+  // Longest match wins, so "acne and rosacea" beats a bare "acne".
+  var best = null, bestLen = 0;
   for (var name in db) {
     var entry = db[name];
     var candidates = [name].concat(entry.aliases || []);
     for (var i = 0; i < candidates.length; i++) {
       var c = candidates[i].replace(/[^a-z]/g, "");
-      if (c && (key === c || key.indexOf(c) !== -1 || c.indexOf(key) !== -1)) {
-        return entry;
+      if (!c) continue;
+      if (key.indexOf(c) !== -1 || c.indexOf(key) !== -1) {
+        if (c.length > bestLen) { bestLen = c.length; best = entry; }
       }
     }
   }
-  return null;
+  return best;
 };
