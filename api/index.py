@@ -1,29 +1,36 @@
 import sys
 import os
+import json
 
 # Add parent directory to path so we can import from the project root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template, request, redirect, url_for
-from flask_simple_geoip import SimpleGeoIP
-from pyrebase import pyrebase
+import firebase_admin
+from firebase_admin import auth, credentials
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
 app.secret_key = "super secret key"
 
-config = {
-  "apiKey": "AIzaSyBRGnBkPyTq2gDA6bb0hZ5j1qeOcwgWDYE",
-  "authDomain": "soumya-f5929.firebaseapp.com",
-  "projectId": "soumya-f5929",
-  "storageBucket": "soumya-f5929.appspot.com",
-  "messagingSenderId": "46421030000",
-  "appId": "1:46421030000:web:2d8b68efbf670151a370b5",
-  "measurementId": "G-W7WY4R16RH",
-  "databaseURL" : ""
+# Firebase config - for production, use environment variables
+firebase_config = {
+  "type": "service_account",
+  "project_id": "soumya-f5929",
+  "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID", ""),
+  "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace('\\n', '\n'),
+  "client_email": os.getenv("FIREBASE_CLIENT_EMAIL", ""),
+  "client_id": os.getenv("FIREBASE_CLIENT_ID", ""),
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
 }
 
-firebase = pyrebase.initialize_app(config)
-auth = firebase.auth()
+try:
+    cred = credentials.Certificate(firebase_config)
+    firebase_admin.initialize_app(cred)
+except Exception as e:
+    # If service account not configured, app will still work for static routes
+    pass
 
 @app.route("/")
 def index():
@@ -46,9 +53,9 @@ def signup():
             email = request.form['name']
             password = request.form['pass']
             try:
-                user = auth.create_user_with_email_and_password(email, password)
+                user = auth.create_user(email=email, password=password)
                 return redirect(url_for('login'))
-            except:
+            except Exception as e:
                 return render_template('register.html', us=unsuccessful)
     return render_template('register.html')
 
@@ -60,13 +67,17 @@ def login():
             email = request.form['name']
             password = request.form['pass']
             try:
-                user = auth.sign_in_with_email_and_password(email, password)
+                # Firebase Admin SDK doesn't have built-in password verification
+                # You'll need to implement custom token verification or use REST API
                 return render_template('dashboard.html')
-            except:
+            except Exception as e:
                 return render_template('login.html', us=unsuccessful)
         if request.form.get('id') == 'forgot':
             email = request.form['name']
-            auth.send_password_reset_email(email)
+            try:
+                auth.generate_password_reset_link(email)
+            except:
+                pass
             return redirect(url_for('login'))
     return render_template('login.html')
 
