@@ -2,12 +2,18 @@ import sys
 import os
 import requests
 
-# Add parent directory to path so we can import from the project root
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Get the correct base directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template, request, redirect, url_for, session
 
-app = Flask(__name__, template_folder='../templates', static_folder='../static', static_url_path='/static')
+# Create Flask app with absolute paths for Vercel compatibility
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'static'),
+    static_url_path='/static'
+)
 app.secret_key = "super secret key"
 
 # Firebase Web API Key (from your Firebase Console)
