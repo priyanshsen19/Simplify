@@ -1,5 +1,5 @@
 Flask==2.3.3
 flask-simple-geoip==0.1.1
-pyrebase4==1.8.0
+firebase-admin==6.2.0
 Werkzeug==2.3.7
 requests==2.31.0
