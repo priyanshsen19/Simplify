@@ -295,7 +295,10 @@
       .remedy-section.warn h4{ color: var(--sc-mod); }
       .remedy-section.danger h4{ color: var(--sc-urgent); }
       .remedy-section ul{ margin: 0; padding-left: 18px; }
+      /* skin.css sets a bare `li { font-family: 'Roboto', serif }` that would
+         otherwise override the page font for every bullet in here. */
       .remedy-section li{
+        font-family: inherit;
         color: #d6e0e8; font-size: 0.89rem; line-height: 1.55;
         margin-bottom: 7px;
       }
